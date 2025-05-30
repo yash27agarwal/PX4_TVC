@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# @name Inverted Coaxial Servo Drone
+#
+# @type Coaxial
+#
+# @class Copter
+#
+# @maintainer Your Name <your.email@example.com>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+
+# Configure as bicopter with servo tilt
+param set-default CA_AIRFRAME 13 # Specify custom airframe
+
+# Set motor count (2 motors, 2 servos)
+# param set-default CA_ROTOR_COUNT 2
+# param set-default CA_SV_TL_COUNT 2
+
+# First motor (top coaxial)
+param set-default CA_TVC_M0_CT 0.0000048449
+param set-default CA_TVC_M0_KMR 0.001
+
+# Second motor (bottom coaxial)
+param set-default CA_TVC_M1_CT 0.0000048449
+param set-default CA_TVC_M1_KMR -0.001
+
+# Servo 0 (Pitch control)
+param set-default CA_TVC_S0_GAIN 1
+param set-default CA_TVC_S0_MAX 0.5
+param set-default CA_TVC_S0_MIN -0.5
+param set-default CA_TVC_S0_GEO_A 0.05 # Negative for clockwise rotation
+param set-default CA_TVC_S0_GEO_B 0.01
+param set-default CA_TVC_S0_GEO_C 0.06
+param set-default CA_TVC_S0_GEO_D 0.02
+param set-default CA_TVC_S0_GEO_E 0.06
+
+# Second motor (bottom coaxial)
+param set-default CA_TVC_S1_GAIN 1
+param set-default CA_TVC_S1_MAX 0.5
+param set-default CA_TVC_S1_MIN -0.5
+param set-default CA_TVC_S1_GEO_A 0.05 # Negative for clockwise rotation
+param set-default CA_TVC_S1_GEO_B 0.01
+param set-default CA_TVC_S1_GEO_C 0.06
+param set-default CA_TVC_S1_GEO_D 0.02
+param set-default CA_TVC_S1_GEO_E 0.06
+
+param set-default CA_TVC_COM_DIS 0.25
+
+# # First servo (roll control)
+# param set-default CA_SV_TL0_TYPE 1 # Roll servo
+# param set-default CA_SV_TL0_MINA -1.0
+# param set-default CA_SV_TL0_MAXA 1.0
+# param set-default CA_SV_TL0_TD 0  # Roll axis deflection
+
+# # Second servo (pitch control)
+# param set-default CA_SV_TL1_TYPE 2 # Pitch servo
+# param set-default CA_SV_TL1_MINA -1.0
+# param set-default CA_SV_TL1_MAXA 1.0
+# param set-default CA_SV_TL1_TD 0  # Pitch axis deflection
+
+# # Set control allocation method
+# # param set-default CA_METHOD 1 # Pseudo-inverse allocation method
+
+# # Adjust attitude control parameters for this configuration
+# # param set-default MC_ROLL_P 6.0
+# # param set-default MC_ROLLRATE_P 0.15
+# # param set-default MC_ROLLRATE_I 0.05
+# # param set-default MC_ROLLRATE_D 0.003
+
+# # param set-default MC_PITCH_P 6.0
+# # param set-default MC_PITCHRATE_P 0.15
+# # param set-default MC_PITCHRATE_I 0.05
+# # param set-default MC_PITCHRATE_D 0.003

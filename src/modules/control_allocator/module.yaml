@@ -30,6 +30,7 @@ parameters:
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
+                13: TVC (our custom platform)
             default: 0
 
         CA_METHOD:
@@ -540,6 +541,110 @@ parameters:
                 0: Ignore
                 1: Remove first failed motor from effectiveness
             default: 0
+
+        # Parameters for TVC (our custom platform)
+
+        CA_TVC_M${i}_CT:
+            description:
+                short: Thrust coefficient for TVC Motor ${i}.
+            type: float
+            default: 0.1
+            min: 0.0
+            num_instances: 2
+            instance_start: 0
+            # ... other fields like unit, decimal, etc.
+        CA_TVC_M${i}_KMR:
+            description:
+                short: Roll moment coefficient for TVC Motor ${i}.
+            type: float
+            default: 0.02
+            num_instances: 2
+            instance_start: 0
+        CA_TVC_S${i}_GAIN:
+            description:
+                short: Gain for TVC servo ${i}.
+            type: float
+            default: 1.0
+            min: 0.0
+            max: 10.0
+            decimal: 2
+            num_instances: 2
+            instance_start: 0
+        CA_TVC_S${i}_MAX:
+            description:
+                short: Maximum output limit for TVC servo ${i} (normalized).
+            type: float
+            default: 1.0
+            min: -1.0 # Or 0.0 if not bidirectional
+            max: 1.0
+            decimal: 2
+            num_instances: 2
+            instance_start: 0
+        CA_TVC_S${i}_MIN:
+            description:
+                short: Minimum output limit for TVC servo ${i} (normalized).
+            type: float
+            default: -1.0 # Or 0.0 if not bidirectional
+            min: -1.0
+            max: 1.0  # Or 0.0 if not bidirectional
+            decimal: 2
+            num_instances: 2
+            instance_start: 0
+        CA_TVC_S${i}_GEO_A:
+            description:
+                short: Custom geometry parameter A for TVC servo ${i}.
+            type: float
+            default: 0.0
+            decimal: 3
+            num_instances: 2
+            instance_start: 0
+            unit: m
+        CA_TVC_S${i}_GEO_B:
+            description:
+                short: Custom geometry parameter B for TVC servo ${i}.
+            type: float
+            default: 0.0
+            decimal: 3
+            num_instances: 2
+            instance_start: 0
+            unit: m
+        CA_TVC_S${i}_GEO_C:
+            description:
+                short: Custom geometry parameter C for TVC servo ${i}.
+            type: float
+            default: 0.0
+            decimal: 3
+            num_instances: 2
+            instance_start: 0
+            unit: m
+        CA_TVC_S${i}_GEO_D:
+            description:
+                short: Custom geometry parameter D for TVC servo ${i}.
+            type: float
+            default: 0.0
+            decimal: 3
+            num_instances: 2
+            instance_start: 0
+            unit: m
+        CA_TVC_S${i}_GEO_E:
+            description:
+                short: Custom geometry parameter E for TVC servo ${i}.
+            type: float
+            default: 0.0
+            decimal: 3
+            num_instances: 2
+            instance_start: 0
+            unit: m
+        CA_TVC_COM_DIS:
+            description:
+                short: Distance from the gimbal center to the TVC motors.
+            type: float
+            default: 0.25
+            decimal: 3
+            min: 0.0
+            max: 1.0
+            unit: m
+
 
 # Mixer
 mixer:
@@ -1140,3 +1245,43 @@ mixer:
                     parameters:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
+
+            13: # Coaxial Gimbal Drone
+                actuators: # This section helps QGC UI and parameter generation
+                  - actuator_type: 'motor'
+                    count: 2 # ActuatorEffectivenessCoaxialGimbal::NUM_MOTORS
+                    item_label_prefix: ['Motor Top', 'Motor Bottom'] # Or just 'Motor' if using ${i}
+                    per_item_parameters:
+                        extra: # These are standard for rotors, but you'll define your own
+                          - name: 'CA_TVC_M${i}_CT' # CoaxialGimbal Motor Thrust Coeff
+                            label: "Thrust Coeff M${i}"
+                          - name: 'CA_TVC_M${i}_KMR' # Roll Moment Coeff M${i}
+                            label: "Roll Moment Coeff M${i}"
+                  - actuator_type: 'servo'
+                    count: 2 # ActuatorEffectivenessCoaxialGimbal::NUM_GIMBAL_SERVOS
+                    item_label_prefix: ['Gimbal Pitch', 'Gimbal Yaw']
+                    per_item_parameters:
+                        extra: # Custom parameters for these servos
+                          - name: 'CA_TVC_S${i}_GAIN'
+                            label: 'Gimbal servo ${i}th Gain'
+                          - name: 'CA_TVC_S${i}_MAX'
+                            label: 'Gimbal ${i}th Servo Max Limit in normalized units'
+                          - name: 'CA_TVC_S${i}_MIN'
+                            label: 'Gimbal ${i}th Servo Min Limit'
+                          - name: 'CA_TVC_S${i}_GEO_A'
+                            label: 'Gimbal ${i}th Servo Length A' # This is a custom parameter for gimbal geometry
+                          - name: 'CA_TVC_S${i}_GEO_B'
+                            label: 'Gimbal ${i}th Servo Length B' # This is a custom parameter for gimbal geometry
+                          - name: 'CA_TVC_S${i}_GEO_C'
+                            label: 'Gimbal ${i}th Servo Length C' # This is a custom parameter for gimbal geometry
+                          - name: 'CA_TVC_S${i}_GEO_D'
+                            label: 'Gimbal ${i}th Servo Length D' # This is a custom parameter for gimbal geometry
+                          - name: 'CA_TVC_S${i}_GEO_E'
+                            label: 'Gimbal ${i}th Servo Length E' # This is a custom parameter for gimbal geometry
+                    parameters:
+                      - label: 'Distance between COM and gimbal center'
+                        name: CA_TVC_COM_DIS # This is a custom parameter for gimbal geometry
+                # parameters: # General parameters for this airframe type if any
+                    # - name: CA_CG_SOME_GLOBAL_PARAM
+                    #   label: 'Some Global Coaxial Gimbal Param'
+
