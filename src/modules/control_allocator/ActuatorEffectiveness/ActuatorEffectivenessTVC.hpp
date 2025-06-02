@@ -6,8 +6,10 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
+// #include <uORB/topics/vehicle_torque_setpoint.h>
+// #include <uORB/topics/vehicle_thrust_setpoint.h>
+
+#include <px4_platform_common/log.h>
 
 class ActuatorEffectivenessTVC : public ModuleParams, public ActuatorEffectiveness
 {
@@ -103,6 +105,6 @@ private:
 
 	hrt_abstime _last_run{0};
 
-	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
-	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
+	// uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
+	// uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
 };
