@@ -15,6 +15,11 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=tvc}
+
+
 # Configure as bicopter with servo tilt
 param set-default CA_AIRFRAME 13 # Specify custom airframe
 
@@ -52,28 +57,3 @@ param set-default CA_TVC_S1_GEO_E 0.06
 
 param set-default CA_TVC_COM_DIS 0.25
 
-# # First servo (roll control)
-# param set-default CA_SV_TL0_TYPE 1 # Roll servo
-# param set-default CA_SV_TL0_MINA -1.0
-# param set-default CA_SV_TL0_MAXA 1.0
-# param set-default CA_SV_TL0_TD 0  # Roll axis deflection
-
-# # Second servo (pitch control)
-# param set-default CA_SV_TL1_TYPE 2 # Pitch servo
-# param set-default CA_SV_TL1_MINA -1.0
-# param set-default CA_SV_TL1_MAXA 1.0
-# param set-default CA_SV_TL1_TD 0  # Pitch axis deflection
-
-# # Set control allocation method
-# # param set-default CA_METHOD 1 # Pseudo-inverse allocation method
-
-# # Adjust attitude control parameters for this configuration
-# # param set-default MC_ROLL_P 6.0
-# # param set-default MC_ROLLRATE_P 0.15
-# # param set-default MC_ROLLRATE_I 0.05
-# # param set-default MC_ROLLRATE_D 0.003
-
-# # param set-default MC_PITCH_P 6.0
-# # param set-default MC_PITCHRATE_P 0.15
-# # param set-default MC_PITCHRATE_I 0.05
-# # param set-default MC_PITCHRATE_D 0.003
