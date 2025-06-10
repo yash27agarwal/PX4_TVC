@@ -13,19 +13,25 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-
+param set-default MAV_TYPE 9 # Rocket
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=tvc}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
 
 
 # Configure as bicopter with servo tilt
 param set-default CA_AIRFRAME 13 # Specify custom airframe
 
 # Set motor count (2 motors, 2 servos)
-# param set-default CA_ROTOR_COUNT 2
-# param set-default CA_SV_TL_COUNT 2
+param set-default CA_ROTOR_COUNT 2
+param set-default CA_SV_TL_COUNT 2
 
 # First motor (top coaxial)
 param set-default CA_TVC_M0_CT 0.0000048449
@@ -56,4 +62,18 @@ param set-default CA_TVC_S1_GEO_D 0.02
 param set-default CA_TVC_S1_GEO_E 0.06
 
 param set-default CA_TVC_COM_DIS 0.25
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+
+param set-default SIM_GZ_EC_MIN1 100
+param set-default SIM_GZ_EC_MIN2 100
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+
+param set FD_FAIL_R 180
+# param set SYS_HAS_MAG 0 # Disable magnetometer
 
