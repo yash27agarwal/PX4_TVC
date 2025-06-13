@@ -250,6 +250,9 @@ set(msg_files
 	WheelEncoders.msg
 	Wind.msg
 	YawEstimatorStatus.msg
+
+	# Custom messages
+	MotorSpeedSetpoint.msg
 )
 list(SORT msg_files)
 

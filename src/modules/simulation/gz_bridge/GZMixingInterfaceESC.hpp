@@ -41,6 +41,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_status.h>
 
+#include <uORB/topics/motor_speed_setpoint.h>
 
 // GZBridge mixing class for ESCs.
 // It is separate from GZBridge to have separate WorkItems and therefore allowing independent scheduling
@@ -76,6 +77,8 @@ private:
 
 	void motorSpeedCallback(const gz::msgs::Actuators &actuators);
 
+	void motorSpeedPublish(const unsigned& active_output_count);
+
 	gz::transport::Node &_node;
 	pthread_mutex_t &_node_mutex;
 
@@ -85,4 +88,15 @@ private:
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
+	float _modified_outputs[MAX_ACTUATORS]{}; ///< modified outputs for ESCs
+
+	float _motor_speed[MAX_ACTUATORS]{}; ///< motor speed in rad/s
+
+	float _pwm_2_motor_speed_coeff[3] = {
+		-0.00103026f,			// a
+		4.35709152f,			// b
+		-3135.27507028f			// c
+	}; // Coefficients for converting PWM to motor speed (a* pwm^2 + b * pwm + c)
+
+	uORB::Publication<motor_speed_setpoint_s>        _motors_speed_pub{ORB_ID(motor_speed_setpoint)};
 };

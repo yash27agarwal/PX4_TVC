@@ -43,8 +43,8 @@ param set-default CA_TVC_M1_KMR -0.001
 
 # Servo 0 (Pitch control)
 param set-default CA_TVC_S0_GAIN 1
-param set-default CA_TVC_S0_MAX 0.5
-param set-default CA_TVC_S0_MIN -0.5
+param set-default CA_TVC_S0_MAX 0.174533
+param set-default CA_TVC_S0_MIN -0.174533
 param set-default CA_TVC_S0_GEO_A 0.05 # Negative for clockwise rotation
 param set-default CA_TVC_S0_GEO_B 0.01
 param set-default CA_TVC_S0_GEO_C 0.06
@@ -53,8 +53,8 @@ param set-default CA_TVC_S0_GEO_E 0.06
 
 # Second motor (bottom coaxial)
 param set-default CA_TVC_S1_GAIN 1
-param set-default CA_TVC_S1_MAX 0.5
-param set-default CA_TVC_S1_MIN -0.5
+param set-default CA_TVC_S1_MAX 0.174533
+param set-default CA_TVC_S1_MIN -0.174533
 param set-default CA_TVC_S1_GEO_A 0.05 # Negative for clockwise rotation
 param set-default CA_TVC_S1_GEO_B 0.01
 param set-default CA_TVC_S1_GEO_C 0.06
@@ -66,8 +66,8 @@ param set-default CA_TVC_COM_DIS 0.25
 param set-default SIM_GZ_EC_FUNC1 101
 param set-default SIM_GZ_EC_FUNC2 102
 
-param set-default SIM_GZ_EC_MIN1 100
-param set-default SIM_GZ_EC_MIN2 100
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MIN2 0
 param set-default SIM_GZ_EC_MAX1 1000
 param set-default SIM_GZ_EC_MAX2 1000
 

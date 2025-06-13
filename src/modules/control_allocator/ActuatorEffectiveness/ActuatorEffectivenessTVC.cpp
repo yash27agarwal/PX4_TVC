@@ -141,30 +141,22 @@ void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &cont
 	float pitch{0.0f};
 	float yaw{0.0f};
 
-	// theta_1 = - asinf(control_sp.t_z / sqrtf(
-	// 		control_sp.t_x * control_sp.t_x +
-	// 		control_sp.t_y * control_sp.t_y +
-	// 		control_sp.t_z * control_sp.t_z)
-	// 		- control_sp.t_y * control_sp.t_y);
+	float thrust_norm = sqrtf(
+			control_sp.t_x * control_sp.t_x +
+			control_sp.t_y * control_sp.t_y +
+			control_sp.t_z * control_sp.t_z);
 
-	// theta_2 = asinf(control_sp.t_y / sqrtf(
-	// 		control_sp.t_x * control_sp.t_x +
-	// 		control_sp.t_y * control_sp.t_y +
-	// 		control_sp.t_z * control_sp.t_z));
+	yaw = - asinf(control_sp.t_z / sqrt(
+		thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
+	yaw = math::constrain(yaw, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
 
-	// Calculate the pitch and yaw angles based on the control setpoint
-	pitch = atan2f(-control_sp.t_z, control_sp.t_x); // Yaw angle in radians
+	pitch = asinf(control_sp.t_y / thrust_norm);
+	pitch  = math::constrain(pitch, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
 
-	yaw = atan2f(-control_sp.t_y,
-		-control_sp.t_x*cosf(pitch) + control_sp.t_z*sinf(pitch)); // Pitch angle in radians
+	// PX4_INFO("Calculated gimbal angles: Pitch: %.4f rad, Yaw: %.4f rad", (double)pitch, (double)yaw);
 
-	gimbal_pitch_cmd = math::constrain(pitch * _geometry.servos[0].gain,
-					_geometry.servos[0].min_limit,
-				_geometry.servos[0].max_limit); // Pitch angle in radians
-
-	gimbal_yaw_cmd = math::constrain(yaw * _geometry.servos[1].gain,
-					_geometry.servos[1].min_limit,
-				_geometry.servos[1].max_limit); // Yaw angle in radians
+	gimbal_pitch_cmd = pitch;
+	gimbal_yaw_cmd = yaw;
 }
 
 void ActuatorEffectivenessTVC::calculateMotorSpeeds(const ControlSetpoint &control_sp,
@@ -216,9 +208,6 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
                 ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
                 const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
-	// if (_motor1_idx == -1 || _servo_pitch_idx == -1) { // Check if actuators are initialized
-	// 	return false;
-	// }
 
 	// _tvc_control_sp.tau_x = control_sp(0);
 	// _tvc_control_sp.tau_y = control_sp(1);
@@ -233,6 +222,14 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 	_tvc_control_sp.t_x = control_sp(3);
 	_tvc_control_sp.t_y = control_sp(4);
 	_tvc_control_sp.t_z = control_sp(5);
+
+	// // Test case
+	// _tvc_control_sp.tau_x = 0.0f;
+	// _tvc_control_sp.tau_y = 0.0f;
+	// _tvc_control_sp.tau_z = 0.0f;
+	// _tvc_control_sp.t_x = 0.6f * 9.81f * 1.1f;
+	// _tvc_control_sp.t_y = 0.0f;
+	// _tvc_control_sp.t_z = 0.0f;
 
 	calculateGimbalAngles(_tvc_control_sp, gimbal_pitch_target_angle, gimbal_yaw_target_angle);
 	actuator_sp(_servo_pitch_idx) = gimbal_pitch_target_angle;
@@ -249,5 +246,4 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 	actuator_sp(_motor1_idx) = motor1_target_pwm;
 	actuator_sp(_motor2_idx) = motor2_target_pwm;
 
-	// return true; // We have handled the setpoint calculation
 }

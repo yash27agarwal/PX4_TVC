@@ -79,8 +79,20 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
 		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
+
+			_modified_outputs[i] = outputs[i] + 1000.0f; // Convert to [1000, 2000] range
+
+			_motor_speed[i] = _pwm_2_motor_speed_coeff[0] * (_modified_outputs[i] * _modified_outputs[i]) +
+					_pwm_2_motor_speed_coeff[1] * _modified_outputs[i] + _pwm_2_motor_speed_coeff[2];
+
+			rotor_velocity_message.set_velocity(i, _motor_speed[i]);
 		}
+
+		GZMixingInterfaceESC::motorSpeedPublish(active_output_count);
+
+		// Reset the modified outputs and motor speeds
+		memset(_motor_speed, 0, sizeof(_motor_speed));
+		memset(_modified_outputs, 0, sizeof(_modified_outputs));
 
 		if (_actuators_pub.Valid()) {
 			return _actuators_pub.Publish(rotor_velocity_message);
@@ -88,6 +100,19 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 	}
 
 	return false;
+}
+
+void GZMixingInterfaceESC::motorSpeedPublish(const unsigned& active_output_count)
+{
+	motor_speed_setpoint_s motor_speed_sp{};
+	motor_speed_sp.timestamp = hrt_absolute_time();
+	motor_speed_sp.num_active_motors = active_output_count;
+	for (unsigned i = 0; i < active_output_count; i++) {
+		motor_speed_sp.motor_speeds[i] = _motor_speed[i];
+	}
+	_motors_speed_pub.publish(motor_speed_sp);
+
+	return;
 }
 
 void GZMixingInterfaceESC::Run()
