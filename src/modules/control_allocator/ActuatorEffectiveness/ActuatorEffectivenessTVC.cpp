@@ -146,12 +146,12 @@ void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &cont
 			control_sp.t_y * control_sp.t_y +
 			control_sp.t_z * control_sp.t_z);
 
-	yaw = - asinf(control_sp.t_z / sqrt(
+	pitch = -asinf(control_sp.t_z / sqrt(
 		thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
-	yaw = math::constrain(yaw, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
+	pitch = math::constrain(pitch, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
 
-	pitch = asinf(control_sp.t_y / thrust_norm);
-	pitch  = math::constrain(pitch, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
+	yaw = asinf(control_sp.t_y / thrust_norm);
+	yaw  = math::constrain(yaw, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
 
 	// PX4_INFO("Calculated gimbal angles: Pitch: %.4f rad, Yaw: %.4f rad", (double)pitch, (double)yaw);
 
@@ -195,8 +195,8 @@ void ActuatorEffectivenessTVC::calculateMotorSpeeds(const ControlSetpoint &contr
 	pwm_2 = math::constrain(pwm_2, 1100.0f, 1900.0f);
 
 	// Normalize to 0 to 1 range
-	motor1_speed = (pwm_1 - 1000.0f) / 1000.0f; // Assuming 1000 is the min PWM value
-	motor2_speed = (pwm_2 - 1000.0f) / 1000.0f; // Assuming 1000 is the min PWM value
+	motor1_speed = (pwm_1 - 1000.0f) / 1000.0f; // Assuming 1000 is the min PWM value and 2000 is the max PWM value
+	motor2_speed = (pwm_2 - 1000.0f) / 1000.0f; // Assuming 1000 is the min PWM value and 2000 is the max PWM value
 
 	// Ensure speeds are within 0 to 1 range
 	motor1_pwm = math::constrain(motor1_speed, 0.0f, 1.0f);
@@ -236,9 +236,6 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 	actuator_sp(_servo_yaw_idx)   = gimbal_yaw_target_angle;
 
 	// 3. Calculate propeller speeds
-	float motor1_target_pwm; // Output of your cubic equation (0 to 1)
-	float motor2_target_pwm; // Output of your cubic equation (0 to 1)
-
 	calculateMotorSpeeds(_tvc_control_sp, motor1_target_pwm, motor2_target_pwm);
 
 	// 4. Apply motor speeds (already normalized 0 to 1 by calculateMotorSpeeds)

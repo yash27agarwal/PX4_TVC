@@ -87,14 +87,17 @@ private:
 	Geometry _geometry{};
 	ControlSetpoint _tvc_control_sp{}; // Current control setpoint
 
-	float gimbal_pitch_target_angle;
-	float gimbal_yaw_target_angle;
+	float gimbal_pitch_target_angle{};
+	float gimbal_yaw_target_angle{};
+
+	float motor1_target_pwm{}; // Output of your cubic equation (0 to 1)
+	float motor2_target_pwm{}; // Output of your cubic equation (0 to 1)
 
 	// Actuator indices
-	int _motor1_idx{0};
-	int _motor2_idx{1};
-	int _servo_pitch_idx{2}; // Assuming servo 0 is pitch
-	int _servo_yaw_idx{3};   // Assuming servo 1 is yaw
+	int _motor1_idx{};
+	int _motor2_idx{};
+	int _servo_pitch_idx{}; // Assuming servo 0 is pitch
+	int _servo_yaw_idx{};   // Assuming servo 1 is yaw
 
 	float p1 {3.1352e-4f};
 	float p2 {0.1352f};

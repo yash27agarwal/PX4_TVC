@@ -80,25 +80,30 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 
 		for (unsigned i = 0; i < active_output_count; i++) {
 
-			_modified_outputs[i] = outputs[i] + 1000.0f; // Convert to [1000, 2000] range
+			// Convert [0,1000] to [1000, 2000] range
+			_modified_outputs[i] = outputs[i] + 1000.0f;
 
+			// Map PWM to motor speed using the quadratic polynomials
 			_motor_speed[i] = _pwm_2_motor_speed_coeff[0] * (_modified_outputs[i] * _modified_outputs[i]) +
 					_pwm_2_motor_speed_coeff[1] * _modified_outputs[i] + _pwm_2_motor_speed_coeff[2];
 
 			rotor_velocity_message.set_velocity(i, _motor_speed[i]);
 		}
 
-		GZMixingInterfaceESC::motorSpeedPublish(active_output_count);
-
-		// Reset the modified outputs and motor speeds
-		memset(_motor_speed, 0, sizeof(_motor_speed));
-		memset(_modified_outputs, 0, sizeof(_modified_outputs));
-
 		if (_actuators_pub.Valid()) {
+
+			// Publish the rotor velocity message on PX4 for debugging
+			GZMixingInterfaceESC::motorSpeedPublish(active_output_count);
+
+			// Reset the modified outputs and motor speeds
+			for (unsigned i = 0; i < active_output_count; i++) {
+				_modified_outputs[i] = 0.0f;
+				_motor_speed[i] = 0.0f;
+			}
+
 			return _actuators_pub.Publish(rotor_velocity_message);
 		}
 	}
-
 	return false;
 }
 
