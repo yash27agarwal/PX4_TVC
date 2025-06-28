@@ -81,33 +81,27 @@ private:
 		param_t gimbal_com_distance; // Parameter for gimbal center of mass distance
 	};
 
-
-
 	ParamHandles _param_handles{};
 	Geometry _geometry{};
 	ControlSetpoint _tvc_control_sp{}; // Current control setpoint
 
-	float gimbal_pitch_target_angle{};
-	float gimbal_yaw_target_angle{};
+	float gimbal_roll_target_angle{};	// Servo 0
+	float gimbal_pitch_target_angle{};	// Servo 1
 
 	float motor1_target_pwm{}; // Output of your cubic equation (0 to 1)
 	float motor2_target_pwm{}; // Output of your cubic equation (0 to 1)
 
 	// Actuator indices
-	int _motor1_idx{};
-	int _motor2_idx{};
-	int _servo_pitch_idx{}; // Assuming servo 0 is pitch
-	int _servo_yaw_idx{};   // Assuming servo 1 is yaw
+	int _motor1_idx{-1};
+	int _motor2_idx{-1};
+	int _servo_roll_idx{-1}; 	// Assuming servo 0 is roll
+	int _servo_pitch_idx{-1};   	// Assuming servo 1 is pitch
 
 	float p1 {3.1352e-4f};
 	float p2 {0.1352f};
 	float p3 {996.9672f};
 
 	bool _geometry_updated{true}; // Flag to indicate if geometry needs recalculation
-	// _params_updated is handled by ModuleParams base class
 
 	hrt_abstime _last_run{0};
-
-	// uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
-	// uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
 };

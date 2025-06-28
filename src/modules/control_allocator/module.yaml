@@ -1259,7 +1259,7 @@ mixer:
                             label: "Roll Moment Coeff M${i}"
                   - actuator_type: 'servo'
                     count: 2 # ActuatorEffectivenessCoaxialGimbal::NUM_GIMBAL_SERVOS
-                    item_label_prefix: ['Gimbal Pitch', 'Gimbal Yaw']
+                    item_label_prefix: ['Gimbal Roll', 'Gimbal Pitch']
                     per_item_parameters:
                         extra: # Custom parameters for these servos
                           - name: 'CA_TVC_S${i}_GAIN'

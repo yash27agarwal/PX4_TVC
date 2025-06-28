@@ -118,13 +118,13 @@ bool ActuatorEffectivenessTVC::getEffectivenessMatrix(Configuration &configurati
 				matrix::Vector3f{}, matrix::Vector3f{});   // Thrust Z
 
 	// Servos
-	// Assuming servo 0 is for pitch and servo 1 is for yaw.
+	// Assuming servo 0 is for roll and servo 1 is for pitch.
 	// The matrix entries here are nominal, as updateSetpoint will handle the precise calculations.
-	_servo_pitch_idx = configuration.addActuator(ActuatorType::SERVOS,
+	_servo_roll_idx = configuration.addActuator(ActuatorType::SERVOS,
 				matrix::Vector3f{}, // Nominal pitch effectiveness
 				matrix::Vector3f{});
-	_servo_yaw_idx   = configuration.addActuator(ActuatorType::SERVOS,
-				matrix::Vector3f{}, // Nominal yaw effectiveness
+	_servo_pitch_idx   = configuration.addActuator(ActuatorType::SERVOS,
+				matrix::Vector3f{},
 				matrix::Vector3f{});
 
 	// Note: If you have trim parameters for servos, you would load them in updateParams()
@@ -136,27 +136,25 @@ bool ActuatorEffectivenessTVC::getEffectivenessMatrix(Configuration &configurati
 }
 
 void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &control_sp,
-						    float &gimbal_pitch_cmd, float &gimbal_yaw_cmd)
+						    float &gimbal_roll_cmd, float &gimbal_pitch_cmd)
 {
+	float roll{0.0f};
 	float pitch{0.0f};
-	float yaw{0.0f};
 
 	float thrust_norm = sqrtf(
 			control_sp.t_x * control_sp.t_x +
 			control_sp.t_y * control_sp.t_y +
 			control_sp.t_z * control_sp.t_z);
 
-	pitch = -asinf(control_sp.t_z / sqrt(
-		thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
-	pitch = math::constrain(pitch, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
+	roll = -asinf(control_sp.t_y / sqrt(
+		thrust_norm * thrust_norm - control_sp.t_x * control_sp.t_x));
+	roll = math::constrain(roll, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
 
-	yaw = asinf(control_sp.t_y / thrust_norm);
-	yaw  = math::constrain(yaw, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
+	pitch = asinf(control_sp.t_x / thrust_norm);
+	pitch  = math::constrain(pitch, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
 
-	// PX4_INFO("Calculated gimbal angles: Pitch: %.4f rad, Yaw: %.4f rad", (double)pitch, (double)yaw);
-
+	gimbal_roll_cmd = roll;
 	gimbal_pitch_cmd = pitch;
-	gimbal_yaw_cmd = yaw;
 }
 
 void ActuatorEffectivenessTVC::calculateMotorSpeeds(const ControlSetpoint &control_sp,
@@ -209,6 +207,8 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
                 const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 
+	// Follows NED frame convention
+
 	// _tvc_control_sp.tau_x = control_sp(0);
 	// _tvc_control_sp.tau_y = control_sp(1);
 	// _tvc_control_sp.tau_z = control_sp(2);
@@ -231,9 +231,9 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 	// _tvc_control_sp.t_y = 0.0f;
 	// _tvc_control_sp.t_z = 0.0f;
 
-	calculateGimbalAngles(_tvc_control_sp, gimbal_pitch_target_angle, gimbal_yaw_target_angle);
+	calculateGimbalAngles(_tvc_control_sp, gimbal_roll_target_angle, gimbal_pitch_target_angle);
+	actuator_sp(_servo_roll_idx)   = gimbal_roll_target_angle;
 	actuator_sp(_servo_pitch_idx) = gimbal_pitch_target_angle;
-	actuator_sp(_servo_yaw_idx)   = gimbal_yaw_target_angle;
 
 	// 3. Calculate propeller speeds
 	calculateMotorSpeeds(_tvc_control_sp, motor1_target_pwm, motor2_target_pwm);

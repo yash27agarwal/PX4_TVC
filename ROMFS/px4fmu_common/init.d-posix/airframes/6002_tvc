@@ -41,20 +41,20 @@ param set-default CA_TVC_M0_KMR 0.001 # Temporary positive value for testing
 param set-default CA_TVC_M1_CT 0.0000048449
 param set-default CA_TVC_M1_KMR -0.001	# Temporary negative value for testing
 
-# Servo 0 (Pitch control)
+# Servo 0 (Roll control)
 param set-default CA_TVC_S0_GAIN 1
-param set-default CA_TVC_S0_MAX 0.523599	# 30 degrees in radians
-param set-default CA_TVC_S0_MIN -0.523599
+param set-default CA_TVC_S0_MAX 1	# 30 degrees in radians
+param set-default CA_TVC_S0_MIN -1
 param set-default CA_TVC_S0_GEO_A 0.05
 param set-default CA_TVC_S0_GEO_B 0.01
 param set-default CA_TVC_S0_GEO_C 0.06
 param set-default CA_TVC_S0_GEO_D 0.02
 param set-default CA_TVC_S0_GEO_E 0.06
 
-# Second motor (bottom coaxial)
+# Servo 1 (Pitch control)
 param set-default CA_TVC_S1_GAIN 1
-param set-default CA_TVC_S1_MAX 0.523599
-param set-default CA_TVC_S1_MIN -0.523599
+param set-default CA_TVC_S1_MAX 1
+param set-default CA_TVC_S1_MIN -1
 param set-default CA_TVC_S1_GEO_A 0.05
 param set-default CA_TVC_S1_GEO_B 0.01
 param set-default CA_TVC_S1_GEO_C 0.06
@@ -71,8 +71,8 @@ param set-default SIM_GZ_EC_MIN2 0
 param set-default SIM_GZ_EC_MAX1 1000
 param set-default SIM_GZ_EC_MAX2 1000
 
-param set-default SIM_GZ_SV_FUNC1 201	# pitch control servo
-param set-default SIM_GZ_SV_FUNC2 202	# yaw control servo
+param set-default SIM_GZ_SV_FUNC1 201	# roll control servo
+param set-default SIM_GZ_SV_FUNC2 202	# pitch control servo
 
 # To avoid failsafe errors during simulation
 param set FD_FAIL_R 180
