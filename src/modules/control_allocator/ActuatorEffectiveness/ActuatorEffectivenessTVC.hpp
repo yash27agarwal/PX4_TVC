@@ -39,6 +39,11 @@ public:
 						    float &gimbal_pitch_cmd, float &gimbal_yaw_cmd);
 	void calculateMotorSpeeds(const ControlSetpoint &control_sp,
 						    float &motor1_pwm, float &motor2_pwm);
+
+	void initialize_allocation_matrix();
+
+	bool inv(const matrix::SquareMatrix<float, 2> &A, matrix::SquareMatrix<float, 2> &inv) ;
+
 private:
 	void updateParams() override;
 
@@ -104,4 +109,16 @@ private:
 	bool _geometry_updated{true}; // Flag to indicate if geometry needs recalculation
 
 	hrt_abstime _last_run{0};
+
+	// Motor coefficients
+	float ct_0{0.0000048449f}; // Thrust coefficient for motor 1 // CCW
+	float ct_1{0.0000048449f}; // Thrust coefficient for motor 2 // CW
+	float cm_0{0.1f}; // Moment coefficient for motor 1 // CCW
+	float cm_1{0.1f}; // Moment coefficient for motor 2 // CW
+
+	// Matrices - these will be initialized in constructor
+	matrix::SquareMatrix<float, 2> B{};
+	matrix::SquareMatrix<float, 2> B_inv{};
+	bool matrix_initialized{false};
+
 };

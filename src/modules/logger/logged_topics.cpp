@@ -138,7 +138,9 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 
-	add_topic("motor_speed_setpoint", 1000);
+	add_topic("motor_speed_setpoint", 1);
+
+	add_topic("vehicle_odometry", 1);
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
@@ -234,8 +236,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
-	add_topic("actuator_motors", 100);
-	add_topic("actuator_servos", 100);
+	add_topic("actuator_motors", 1);
+	add_topic("actuator_servos", 1);
 	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
 	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 

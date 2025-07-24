@@ -39,6 +39,52 @@ ActuatorEffectivenessTVC::ActuatorEffectivenessTVC(ModuleParams *parent)
 	_param_handles.gimbal_com_distance = param_find("CA_TVC_COM_DIS");
 
 	updateParams(); // Perform initial parameter load
+
+	initialize_allocation_matrix(); // Initialize the allocation matrix
+}
+
+bool ActuatorEffectivenessTVC::inv(const matrix::SquareMatrix<float, 2> &A,
+				   matrix::SquareMatrix<float, 2> &inv)
+{
+	float epsilon = 1e-20f;
+
+	float det = A(0, 0) * A(1, 1) - A(1, 0) * A(0, 1);
+
+	if (std::fabs(static_cast<float>(det)) < epsilon || !std::isfinite(det)) {
+		return false;
+	}
+
+	inv(0, 0) = A(1, 1);
+	inv(1, 0) = -A(1, 0);
+	inv(0, 1) = -A(0, 1);
+	inv(1, 1) = A(0, 0);
+	inv /= det;
+	return true;
+}
+
+
+void ActuatorEffectivenessTVC::initialize_allocation_matrix()
+{
+	// Initialize the B matrix
+	B(0, 0) = ct_0 * cm_0;
+	B(0, 1) = -ct_1 * cm_1;
+	B(1, 0) = ct_0;
+	B(1, 1) = ct_1;
+
+	// Calculate inverse matrix
+	bool success = ActuatorEffectivenessTVC::inv(B, B_inv);
+
+	PX4_INFO("B matrix:\n%.6f, %.6f\n%.6f, %.6f",
+             (double)B(0,0), (double)B(0,1), (double)B(1,0), (double)B(1,1));
+
+	if (!success) {
+		PX4_ERR("Failed to calculate matrix inverse");
+		matrix_initialized = false;
+	} else {
+		matrix_initialized = true;
+		PX4_INFO("B_inv matrix:\n%.6f, %.6f\n%.6f, %.6f",
+             (double)B_inv(0,0), (double)B_inv(0,1), (double)B_inv(1,0), (double)B_inv(1,1));
+	}
 }
 
 void ActuatorEffectivenessTVC::updateParams()
@@ -146,11 +192,24 @@ void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &cont
 			control_sp.t_y * control_sp.t_y +
 			control_sp.t_z * control_sp.t_z);
 
-	roll = -asinf(control_sp.t_y / sqrt(
-		thrust_norm * thrust_norm - control_sp.t_x * control_sp.t_x));
-	roll = math::constrain(roll, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
+	////////////////////////////////////////////////////////////////////////////////
+	// Following calculation are for R(x, phi) * R(y, theta)
+	////////////////////////////////////////////////////////////////////////////////
+	// roll = asinf(control_sp.t_y / sqrt(
+	// 	thrust_norm * thrust_norm - control_sp.t_x * control_sp.t_x));
+	// pitch = -asinf(control_sp.t_x / thrust_norm);
+	////////////////////////////////////////////////////////////////////////////////
 
-	pitch = asinf(control_sp.t_x / thrust_norm);
+	////////////////////////////////////////////////////////////////////////////////
+	// Following calculations are for R(y, theta) * R(x, phi)
+	////////////////////////////////////////////////////////////////////////////////
+	roll = asinf(control_sp.t_y / thrust_norm);
+	pitch = -asinf(control_sp.t_x / sqrt(
+			thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
+	////////////////////////////////////////////////////////////////////////////////
+
+	// Constrain roll and pitch to servo limits
+	roll = math::constrain(roll, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
 	pitch  = math::constrain(pitch, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
 
 	gimbal_roll_cmd = roll;
@@ -162,19 +221,28 @@ void ActuatorEffectivenessTVC::calculateMotorSpeeds(const ControlSetpoint &contr
 {
 	// Calculate motor speeds based on the control setpoint
 	// This is a simplified example; you would replace this with your cubic equation logic.
-	float thrust_mag_in_gimbal_frame = sqrtf(control_sp.t_x * control_sp.t_x +
-				control_sp.t_y * control_sp.t_y +
-				control_sp.t_z * control_sp.t_z);
+	float thrust_mag =
+			sqrtf(control_sp.t_x * control_sp.t_x +
+			control_sp.t_y * control_sp.t_y +
+			control_sp.t_z * control_sp.t_z);
 
-	float motor1_speed_sq = (thrust_mag_in_gimbal_frame / 2) / _geometry.motors[0].ct; // Example calculation
-	float motor2_speed_sq = (thrust_mag_in_gimbal_frame / 2) / _geometry.motors[1].ct; // Example calculation
+	matrix::Vector2f control_vector(control_sp.tau_z, thrust_mag);
+
+	matrix::Vector2f motor_speeds_sq = B_inv * control_vector;
+
+	float motor1_speed_sq = motor_speeds_sq(0);
+	float motor2_speed_sq = motor_speeds_sq(1);
+
+
+	// PX4_INFO("Motor speeds calculated: M1: %.2f, M2: %.2f \n",
+	// 		(double)motor1_speed_sq, (double)motor2_speed_sq);
 
 	// Check for negative motor speed squared values
 	if (motor1_speed_sq < 0.0f || motor2_speed_sq < 0.0f) {
 		motor1_pwm = NAN;
 		motor2_pwm = NAN;
-		PX4_WARN("Negative motor speed squared detected: M1: %.2f, M2: %.2f. Replacing with NaN.",
-				(double)motor1_speed_sq, (double)motor2_speed_sq);
+		// PX4_WARN("Negative motor speed squared detected: M1: %.2f, M2: %.2f. Replacing with NaN.\n",
+		// 		(double)motor1_speed_sq, (double)motor2_speed_sq);
 		return;
 	}
 
@@ -216,31 +284,34 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 	// _tvc_control_sp.t_y = - _tvc_control_sp.tau_z / _geometry.gimbal_com_distance; // Invert Y thrust for correct direction
 	// _tvc_control_sp.t_z = _tvc_control_sp.tau_y / _geometry.gimbal_com_distance; // Invert Z thrust for correct direction
 
-	_tvc_control_sp.tau_x = control_sp(0);
-	_tvc_control_sp.tau_y = control_sp(1);
-	_tvc_control_sp.tau_z = control_sp(2);
-	_tvc_control_sp.t_x = control_sp(3);
-	_tvc_control_sp.t_y = control_sp(4);
-	_tvc_control_sp.t_z = control_sp(5);
+	if (matrix_initialized)
+	{
+		gimbal_roll_target_angle = control_sp(0); 	//phi
+		gimbal_pitch_target_angle = control_sp(1);	//theta
+		_tvc_control_sp.tau_z = control_sp(2);		// tau_z
+		_tvc_control_sp.t_x = control_sp(3);		// 0
+		_tvc_control_sp.t_y = control_sp(4);		// 0
+		_tvc_control_sp.t_z = control_sp(5);		// t_z
 
-	// // Test case
-	// _tvc_control_sp.tau_x = 0.0f;
-	// _tvc_control_sp.tau_y = 0.0f;
-	// _tvc_control_sp.tau_z = 0.0f;
-	// _tvc_control_sp.t_x = 0.6f * 9.81f * 1.1f;
-	// _tvc_control_sp.t_y = 0.0f;
-	// _tvc_control_sp.t_z = 0.0f;
+		// // Test case
+		// _tvc_control_sp.tau_x = 0.0f;
+		// _tvc_control_sp.tau_y = 0.0f;
+		// _tvc_control_sp.tau_z = 0.0f;
+		// _tvc_control_sp.t_x = 0.6f * 9.81f * 1.1f;
+		// _tvc_control_sp.t_y = 0.0f;
+		// _tvc_control_sp.t_z = 0.0f;
 
-	calculateGimbalAngles(_tvc_control_sp, gimbal_roll_target_angle, gimbal_pitch_target_angle);
-	actuator_sp(_servo_roll_idx)   = gimbal_roll_target_angle;
-	actuator_sp(_servo_pitch_idx) = gimbal_pitch_target_angle;
+		// calculateGimbalAngles(_tvc_control_sp, gimbal_roll_target_angle, gimbal_pitch_target_angle);
+		actuator_sp(_servo_roll_idx)   = gimbal_roll_target_angle;
+		actuator_sp(_servo_pitch_idx) = gimbal_pitch_target_angle;
 
-	// 3. Calculate propeller speeds
-	calculateMotorSpeeds(_tvc_control_sp, motor1_target_pwm, motor2_target_pwm);
+		// 3. Calculate propeller speeds
+		calculateMotorSpeeds(_tvc_control_sp, motor1_target_pwm, motor2_target_pwm);
 
-	// 4. Apply motor speeds (already normalized 0 to 1 by calculateMotorSpeeds)
-	// The actuator_min/max for motors are typically 0 to 1 (or -1 to 1 if reversible).
-	actuator_sp(_motor1_idx) = motor1_target_pwm;
-	actuator_sp(_motor2_idx) = motor2_target_pwm;
+		// 4. Apply motor speeds (already normalized 0 to 1 by calculateMotorSpeeds)
+		// The actuator_min/max for motors are typically 0 to 1 (or -1 to 1 if reversible).
+		actuator_sp(_motor1_idx) = motor1_target_pwm;
+		actuator_sp(_motor2_idx) = motor2_target_pwm;
+	}
 
 }

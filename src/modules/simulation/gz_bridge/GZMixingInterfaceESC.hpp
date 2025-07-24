@@ -43,6 +43,8 @@
 
 #include <uORB/topics/motor_speed_setpoint.h>
 
+#include <px4_platform_common/log.h>
+
 // GZBridge mixing class for ESCs.
 // It is separate from GZBridge to have separate WorkItems and therefore allowing independent scheduling
 // All work items are expected to run on the same work queue.
