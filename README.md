@@ -1,138 +1,283 @@
-# PX4 Drone Autopilot
+# PX4 TVC (Thrust Vector Control)
 
-[![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![DOI](https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot)
+[![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases)
 
-[![Nuttx Targets](https://github.com/PX4/PX4-Autopilot/workflows/Nuttx%20Targets/badge.svg)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22Nuttx+Targets%22?branch=master) [![SITL Tests](https://github.com/PX4/PX4-Autopilot/workflows/SITL%20Tests/badge.svg?branch=master)](https://github.com/PX4/PX4-Autopilot/actions?query=workflow%3A%22SITL+Tests%22)
+A modified PX4 autopilot implementation specifically designed for inverted coaxial drones with thrust vector control capabilities.
 
-[![Discord Shield](https://discordapp.com/api/guilds/1022170275984457759/widget.png?style=shield)](https://discord.gg/dronecode)
+## Overview
 
-This repository holds the [PX4](http://px4.io) flight control solution for drones, with the main applications located in the [src/modules](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules) directory. It also contains the PX4 Drone Middleware Platform, which provides drivers and middleware to run drones.
+This repository contains a specialized fork of PX4 autopilot software, customized for inverted coaxial drone configurations. The modifications enable precise control of coaxial motor systems with gimbal-based thrust vectoring.
 
-PX4 is highly portable, OS-independent and supports Linux, NuttX and MacOS out of the box.
+**⚠️ Important:** This code is not compatible with standard PX4 source code and should only be used for inverted coaxial drone applications.
 
-* Official Website: http://px4.io (License: BSD 3-clause, [LICENSE](https://github.com/PX4/PX4-Autopilot/blob/main/LICENSE))
-* [Supported airframes](https://docs.px4.io/main/en/airframes/airframe_reference.html) ([portfolio](https://px4.io/ecosystem/commercial-systems/)):
-  * [Multicopters](https://docs.px4.io/main/en/frames_multicopter/)
-  * [Fixed wing](https://docs.px4.io/main/en/frames_plane/)
-  * [VTOL](https://docs.px4.io/main/en/frames_vtol/)
-  * [Autogyro](https://docs.px4.io/main/en/frames_autogyro/)
-  * [Rover](https://docs.px4.io/main/en/frames_rover/)
-  * many more experimental types (Blimps, Boats, Submarines, High altitude balloons, etc)
-* Releases: [Downloads](https://github.com/PX4/PX4-Autopilot/releases)
+>**Note:** All git tag checks have been disbled in this code.
 
+## Key Modifications
 
-## Building a PX4 based drone, rover, boat or robot
+### 1. New Coaxial Airframe Support
+- Custom airframe configuration for inverted coaxial drones
+- Specialized control allocation for dual coaxial motors
+- Gimbal servo integration for thrust vector control
 
-The [PX4 User Guide](https://docs.px4.io/main/en/) explains how to assemble [supported vehicles](https://docs.px4.io/main/en/airframes/airframe_reference.html) and fly drones with PX4.
-See the [forum and chat](https://docs.px4.io/main/en/#getting-help) if you need help!
+### 2. Enhanced Gazebo ESC Interface
+- Improved simulation accuracy for coaxial motor systems
+- More intuitive source code logic
+- Better alignment between simulation and real-world behavior
 
+## Adding Custom Airframes
 
-## Changing code and contributing
+### Step 1: Define Airframe Parameters
 
-This [Developer Guide](https://docs.px4.io/main/en/development/development.html) is for software developers who want to modify the flight stack and middleware (e.g. to add new flight modes), hardware integrators who want to support new flight controller boards and peripherals, and anyone who wants to get PX4 working on a new (unsupported) airframe/vehicle.
+Add your airframe parameters to `/src/modules/control_allocator/module.yaml`:
 
-Developers should read the [Guide for Contributions](https://docs.px4.io/main/en/contribute/).
-See the [forum and chat](https://docs.px4.io/main/en/#getting-help) if you need help!
+```yaml
+parameters:
+  - group: Geometry
+    definitions:
+      # TVC Motor Parameters
+      CA_TVC_M${i}_CT:
+        description:
+          short: Thrust coefficient for TVC Motor ${i}
+        type: float
+        default: 0.1
+        min: 0.0
+        num_instances: 2
+        instance_start: 0
+      
+      CA_TVC_M${i}_KMR:
+        description:
+          short: Roll moment coefficient for TVC Motor ${i}
+        type: float
+        default: 0.02
+        num_instances: 2
+        instance_start: 0
+      
+      # TVC Servo Parameters
+      CA_TVC_S${i}_GAIN:
+        description:
+          short: Gain for TVC servo ${i}
+        type: float
+        default: 1.0
+        min: 0.0
+        max: 10.0
+        decimal: 2
+        num_instances: 2
+        instance_start: 0
+      
+      CA_TVC_S${i}_MAX:
+        description:
+          short: Maximum output limit for TVC servo ${i} (normalized)
+        type: float
+        default: 1.0
+        min: -1.0
+        max: 1.0
+        decimal: 2
+        num_instances: 2
+        instance_start: 0
+```
 
+### Step 2: Configure Airframe Type
 
-### Weekly Dev Call
+Add the airframe configuration in the same `module.yaml` file:
 
-The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/contribute/).
+```yaml
+config:
+  param: CA_AIRFRAME
+  types:
+    13: # Coaxial Gimbal Drone
+      actuators:
+        - actuator_type: 'motor'
+          count: 2
+          item_label_prefix: ['Motor Top', 'Motor Bottom']
+          per_item_parameters:
+            extra:
+              - name: 'CA_TVC_M${i}_CT'
+                label: "Thrust Coeff M${i}"
+              - name: 'CA_TVC_M${i}_KMR'
+                label: "Roll Moment Coeff M${i}"
+        
+        - actuator_type: 'servo'
+          count: 2
+          item_label_prefix: ['Gimbal Roll', 'Gimbal Pitch']
+          per_item_parameters:
+            extra:
+              - name: 'CA_TVC_S${i}_GAIN'
+                label: 'Gimbal Servo ${i} Gain'
+              - name: 'CA_TVC_S${i}_MAX'
+                label: 'Gimbal Servo ${i} Max Limit'
+              - name: 'CA_TVC_S${i}_MIN'
+                label: 'Gimbal Servo ${i} Min Limit'
+              - name: 'CA_TVC_S${i}_GEO_A'
+                label: 'Gimbal Servo ${i} Geometry A'
+              - name: 'CA_TVC_S${i}_GEO_B'
+                label: 'Gimbal Servo ${i} Geometry B'
+              - name: 'CA_TVC_S${i}_GEO_C'
+                label: 'Gimbal Servo ${i} Geometry C'
+              - name: 'CA_TVC_S${i}_GEO_D'
+                label: 'Gimbal Servo ${i} Geometry D'
+              - name: 'CA_TVC_S${i}_GEO_E'
+                label: 'Gimbal Servo ${i} Geometry E'
+      parameters:
+        - label: 'Distance between COM and gimbal center'
+          name: CA_TVC_COM_DIS
+```
 
-> **Note** The dev call is open to all interested developers (not just the core dev team). This is a great opportunity to meet the team and contribute to the ongoing development of the platform. It includes a QA session for newcomers. All regular calls are listed in the [Dronecode calendar](https://www.dronecode.org/calendar/).
+### Step 3: Create Airframe Configuration File
 
+Create a configuration file in `ROMFS/init.d-posix/airframes/` with the naming convention `<number>_<name>`:
 
-## Maintenance Team
+```bash
+#!/bin/sh
+# @name TVC Coaxial Drone
+# @type Coaxial
+# @maintainer Your Name <email@example.com>
 
-Note: This is the source of truth for the active maintainers of PX4 ecosystem.
+. ${R}etc/init.d/rc.mc_defaults
 
-| Sector | Maintainer |
-|---|---|
-| Founder | [Lorenz Meier](https://github.com/LorenzMeier) |
-| Architecture | [Daniel Agar](https://github.com/dagar) / [Beat Küng](https://github.com/bkueng)|
-| State Estimation | [Mathieu Bresciani](https://github.com/bresch) / [Paul Riseborough](https://github.com/priseborough) |
-| OS/NuttX | [David Sidrane](https://github.com/davids5) |
-| Drivers | [Daniel Agar](https://github.com/dagar) |
-| Simulation | [Jaeyoung Lim](https://github.com/Jaeyoung-Lim) |
-| ROS2 | [Beniamino Pozzan](https://github.com/beniaminopozzan) |
-| Community QnA Call | [Ramon Roche](https://github.com/mrpollo) |
-| [Documentation](https://docs.px4.io/main/en/) | [Hamish Willee](https://github.com/hamishwillee) |
+param set-default MAV_TYPE 9 # Rocket
 
-| Vehicle Type | Maintainer |
-|---|---|
-| Multirotor | [Matthias Grob](https://github.com/MaEtUgR) |
-| Fixed Wing | [Thomas Stastny](https://github.com/tstastny) |
-| Hybrid VTOL | [Silvan Fuhrer](https://github.com/sfuhrer) |
-| Boat | x |
-| Rover | x |
+# Simulator configuration
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=tvc}
 
-See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github). However it may be not up to date.
+param set-default SIM_GZ_EN 1
 
-## Supported Hardware
+# Sensor configuration
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
 
-Pixhawk standard boards and proprietary boards are shown below (discontinued boards aren't listed).
+# Airframe configuration
+param set-default CA_AIRFRAME 13
+param set-default CA_ROTOR_COUNT 2
+param set-default CA_SV_TL_COUNT 2
 
-For the most up to date information, please visit [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/main/en/flight_controller/).
+# Motor parameters
+param set-default CA_TVC_M0_CT 0.0000048449
+param set-default CA_TVC_M0_KMR 0.001
+param set-default CA_TVC_M1_CT 0.0000048449
+param set-default CA_TVC_M1_KMR -0.001
 
-### Pixhawk Standard Boards
+# Servo parameters
+param set-default CA_TVC_S0_GAIN 1
+param set-default CA_TVC_S0_MAX 1
+param set-default CA_TVC_S0_MIN -1
+param set-default CA_TVC_S0_GEO_A 0.05
+param set-default CA_TVC_S0_GEO_B 0.01
+param set-default CA_TVC_S0_GEO_C 0.06
+param set-default CA_TVC_S0_GEO_D 0.02
+param set-default CA_TVC_S0_GEO_E 0.06
 
-These boards fully comply with Pixhawk Standard, and are maintained by the PX4-Autopilot maintainers and Dronecode team
+param set-default CA_TVC_S1_GAIN 1
+param set-default CA_TVC_S1_MAX 1
+param set-default CA_TVC_S1_MIN -1
+param set-default CA_TVC_S1_GEO_A 0.05
+param set-default CA_TVC_S1_GEO_B 0.01
+param set-default CA_TVC_S1_GEO_C 0.06
+param set-default CA_TVC_S1_GEO_D 0.02
+param set-default CA_TVC_S1_GEO_E 0.06
 
-* FMUv6X and FMUv6C
-  * [CUAV Pixahwk V6X (FMUv6X)](https://docs.px4.io/main/en/flight_controller/cuav_pixhawk_v6x.html)
-  * [Holybro Pixhawk 6X (FMUv6X)](https://docs.px4.io/main/en/flight_controller/pixhawk6x.html)
-  * [Holybro Pixhawk 6C (FMUv6C)](https://docs.px4.io/main/en/flight_controller/pixhawk6c.html)
-  * [Holybro Pix32 v6 (FMUv6C)](https://docs.px4.io/main/en/flight_controller/holybro_pix32_v6.html)
-* FMUv5 and FMUv5X (STM32F7, 2019/20)
-  * [Pixhawk 4 (FMUv5)](https://docs.px4.io/main/en/flight_controller/pixhawk4.html)
-  * [Pixhawk 4 mini (FMUv5)](https://docs.px4.io/main/en/flight_controller/pixhawk4_mini.html)
-  * [CUAV V5+ (FMUv5)](https://docs.px4.io/main/en/flight_controller/cuav_v5_plus.html)
-  * [CUAV V5 nano (FMUv5)](https://docs.px4.io/main/en/flight_controller/cuav_v5_nano.html)
-  * [Auterion Skynode (FMUv5X)](https://docs.auterion.com/avionics/skynode)
-* FMUv4 (STM32F4, 2015)
-  * [Pixracer](https://docs.px4.io/main/en/flight_controller/pixracer.html)
-  * [Pixhawk 3 Pro](https://docs.px4.io/main/en/flight_controller/pixhawk3_pro.html)
-* FMUv3 (STM32F4, 2014)
-  * [Pixhawk 2](https://docs.px4.io/main/en/flight_controller/pixhawk-2.html)
-  * [Pixhawk Mini](https://docs.px4.io/main/en/flight_controller/pixhawk_mini.html)
-  * [CUAV Pixhack v3](https://docs.px4.io/main/en/flight_controller/pixhack_v3.html)
-* FMUv2 (STM32F4, 2013)
-  * [Pixhawk](https://docs.px4.io/main/en/flight_controller/pixhawk.html)
+# Geometry parameters
+param set-default CA_TVC_COM_DIS 0.275170
 
-### Manufacturer supported
+# Gazebo interface configuration
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MIN2 0
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+param set-default SIM_GZ_SV_FUNC1 201  # Roll control servo
+param set-default SIM_GZ_SV_FUNC2 202  # Pitch control servo
+```
 
-These boards are maintained to be compatible with PX4-Autopilot by the Manufacturers.
+**Note:** Remember to add the filename to `CMakeLists.txt` in the same directory.
 
-* [ARK Electronics ARKV6X](https://docs.px4.io/main/en/flight_controller/arkv6x.html)
-* [CubePilot Cube Orange+](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus.html)
-* [CubePilot Cube Orange](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange.html)
-* [CubePilot Cube Yellow](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow.html)
-* [Holybro Durandal](https://docs.px4.io/main/en/flight_controller/durandal.html)
-* [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
-* [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
-* [Holybro Kakute F7](https://docs.px4.io/main/en/flight_controller/kakutef7.html)
+### Step 4: Implement Control Allocation Logic
 
-### Community supported
+Create `ActuatorEffectivenessTVC.cpp` and `ActuatorEffectivenessTVC.hpp` files in `src/modules/control_allocator/ActuatorEffectiveness/`:
 
-These boards don't fully comply industry standards, and thus is solely maintained by the PX4 public community members.
+#### Key Functions to Implement:
 
-### Experimental
+**getEffectivenessMatrix()** - Override default PX4 control allocation by adding `matrix::Vector3f{}, matrix::Vector3f{}` when adding motor/servos:
+```cpp
+bool ActuatorEffectivenessTVC::getEffectivenessMatrix(Configuration &configuration,
+                                EffectivenessUpdateReason external_update)
+{
+    if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE && !_geometry_updated) {
+        return false;
+    }
 
-These boards are nor maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
+    // Add motors with zero vectors to override default allocation
+    _motor1_idx = configuration.addActuator(ActuatorType::MOTORS, 
+        matrix::Vector3f{}, matrix::Vector3f{}); 
+    _motor2_idx = configuration.addActuator(ActuatorType::MOTORS,
+        matrix::Vector3f{}, matrix::Vector3f{});  
 
-* [Raspberry PI with Navio 2](https://docs.px4.io/main/en/flight_controller/raspberry_pi_navio2.html)
-* [Bitcraze Crazyflie 2.0](https://docs.px4.io/main/en/complete_vehicles/crazyflie2.html)
+    // Add servos
+    _servo_roll_idx = configuration.addActuator(ActuatorType::SERVOS,
+        matrix::Vector3f{}, matrix::Vector3f{});
+    _servo_pitch_idx = configuration.addActuator(ActuatorType::SERVOS,
+        matrix::Vector3f{}, matrix::Vector3f{});
 
-## Project Roadmap
+    _geometry_updated = false;
+    return true;
+}
+```
 
-**Note: Outdated**
+**updateSetpoint()** - Implement custom control allocation logic:
+```cpp
+void ActuatorEffectivenessTVC::updateSetpoint(
+    const matrix::Vector<float, NUM_AXES> &control_sp, 
+    int matrix_index, 
+    ActuatorVector &actuator_sp, 
+    const matrix::Vector<float, NUM_ACTUATORS> &actuator_min, 
+    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+    // Your custom control allocation logic here
+}
+```
 
-A high level project roadmap is available [here](https://github.com/orgs/PX4/projects/25).
+### Step 5: Integration
 
-## Project Governance
+1. Include the new effectiveness file in `ControlAllocator.hpp`
+2. Update the `update_effectiveness_source()` function in `ControlAllocator.cpp`
 
-The PX4 Autopilot project including all of its trademarks is hosted under [Dronecode](https://www.dronecode.org/), part of the Linux Foundation.
+## Gazebo ESC Interface Modifications
 
-<a href="https://www.dronecode.org/" style="padding:20px" ><img src="https://mavlink.io/assets/site/logo_dronecode.png" alt="Dronecode Logo" width="110px"/></a>
-<a href="https://www.linuxfoundation.org/projects" style="padding:20px;"><img src="https://mavlink.io/assets/site/logo_linux_foundation.png" alt="Linux Foundation Logo" width="80px" /></a>
-<div style="padding:10px">&nbsp;</div>
+Improvements have been made to `src/simulation/gz_bridge/GZMixingInterfaceESC.cpp` to enhance simulation accuracy and code logic.
+
+**Reference:** [PX4 Discuss - Potential Bug in PX4 GZ Bridge ESC Interface](https://discuss.px4.io/t/potential-bug-in-px4-gz-bridge-esc-interface/46132)
+
+## Build and Run Instructions
+
+### Building the Project
+
+```bash
+make px4_sitl_default
+```
+
+### Running the TVC Airframe
+
+```bash
+# Use the airframe number defined in ROMFS/init.d-posix/airframes/
+PX4_SYS_AUTOSTART=6002 ./build/px4_sitl_default/bin/px4
+```
+
+## Documentation References
+
+- [PX4 Control Allocation Documentation](https://docs.px4.io/main/en/concept/control_allocation.html)
+- [PX4 Airframe Configuration](https://docs.px4.io/main/en/dev_airframe/adding_a_new_frame.html)
+
+## Contributing
+
+When contributing to this project, please ensure that:
+
+1. All modifications maintain compatibility with the inverted coaxial drone configuration
+2. Simulation accuracy improvements are tested thoroughly
+3. Documentation is updated to reflect any changes
+
+## License
+
+This project maintains the same license as the original PX4 project.
