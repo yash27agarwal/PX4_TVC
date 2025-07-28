@@ -259,6 +259,7 @@ make px4_sitl_default
 ```
 
 ### Running the TVC Airframe
+First copy the model file from main repo to GZ simulation folder as mentioned in main repo README instructions.
 
 ```bash
 # Use the airframe number defined in ROMFS/init.d-posix/airframes/
