@@ -10,7 +10,7 @@ This repository contains a specialized fork of PX4 autopilot software, customize
 
 **⚠️ Important:** This code is not compatible with standard PX4 source code and should only be used for inverted coaxial drone applications.
 
->**Note:** All git tag checks have been disbled in this code.
+>**Note:** All checks for git tag have been disabled in this repository.
 
 ## Key Modifications
 
