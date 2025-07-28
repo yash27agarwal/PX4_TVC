@@ -35,8 +35,8 @@ public:
 	const char *name() const override { return "TVC"; } // Changed from "GimbalCoaxial" to "TVC" to match params
 
 	// Helper functions
-	void calculateGimbalAngles(const ControlSetpoint &control_sp,
-						    float &gimbal_pitch_cmd, float &gimbal_yaw_cmd);
+	// void calculateGimbalAngles(const ControlSetpoint &control_sp,
+	// 					    float &gimbal_pitch_cmd, float &gimbal_yaw_cmd);
 	void calculateMotorSpeeds(const ControlSetpoint &control_sp,
 						    float &motor1_pwm, float &motor2_pwm);
 

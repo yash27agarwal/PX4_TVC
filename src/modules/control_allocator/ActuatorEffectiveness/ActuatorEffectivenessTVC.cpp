@@ -154,67 +154,55 @@ bool ActuatorEffectivenessTVC::getEffectivenessMatrix(Configuration &configurati
 	}
 
 	// Motors
-	// Motor 0 (e.g., Top)
-	// The effectiveness matrix entries are simplified here.
-	// Your updateSetpoint method will contain the detailed non-linear logic.
-	// Thrust is along -Z. Roll moment depends on KMR.
-	_motor1_idx = configuration.addActuator(ActuatorType::MOTORS, matrix::Vector3f{}, matrix::Vector3f{});   // Thrust Z
-	// Motor 1 (e.g., Bottom)
+	_motor1_idx = configuration.addActuator(ActuatorType::MOTORS, 
+		matrix::Vector3f{}, matrix::Vector3f{}); 
 	_motor2_idx = configuration.addActuator(ActuatorType::MOTORS,
-				matrix::Vector3f{}, matrix::Vector3f{});   // Thrust Z
+				matrix::Vector3f{}, matrix::Vector3f{});  
 
 	// Servos
-	// Assuming servo 0 is for roll and servo 1 is for pitch.
-	// The matrix entries here are nominal, as updateSetpoint will handle the precise calculations.
 	_servo_roll_idx = configuration.addActuator(ActuatorType::SERVOS,
-				matrix::Vector3f{}, // Nominal pitch effectiveness
-				matrix::Vector3f{});
+				matrix::Vector3f{}, matrix::Vector3f{});
 	_servo_pitch_idx   = configuration.addActuator(ActuatorType::SERVOS,
-				matrix::Vector3f{},
-				matrix::Vector3f{});
-
-	// Note: If you have trim parameters for servos, you would load them in updateParams()
-	// and apply them here to configuration.trim[configuration.selected_matrix](servo_idx)
+				matrix::Vector3f{}, matrix::Vector3f{});
 
 	_geometry_updated = false;
-	// _params_updated is handled by the base class and will trigger updateParams()
 	return true;
 }
 
-void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &control_sp,
-						    float &gimbal_roll_cmd, float &gimbal_pitch_cmd)
-{
-	float roll{0.0f};
-	float pitch{0.0f};
+// void ActuatorEffectivenessTVC::calculateGimbalAngles(const ControlSetpoint &control_sp,
+// 						    float &gimbal_roll_cmd, float &gimbal_pitch_cmd)
+// {
+// 	float roll{0.0f};
+// 	float pitch{0.0f};
 
-	float thrust_norm = sqrtf(
-			control_sp.t_x * control_sp.t_x +
-			control_sp.t_y * control_sp.t_y +
-			control_sp.t_z * control_sp.t_z);
+// 	float thrust_norm = sqrtf(
+// 			control_sp.t_x * control_sp.t_x +
+// 			control_sp.t_y * control_sp.t_y +
+// 			control_sp.t_z * control_sp.t_z);
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Following calculation are for R(x, phi) * R(y, theta)
-	////////////////////////////////////////////////////////////////////////////////
-	// roll = asinf(control_sp.t_y / sqrt(
-	// 	thrust_norm * thrust_norm - control_sp.t_x * control_sp.t_x));
-	// pitch = -asinf(control_sp.t_x / thrust_norm);
-	////////////////////////////////////////////////////////////////////////////////
+// 	////////////////////////////////////////////////////////////////////////////////
+// 	// Following calculation are for R(x, phi) * R(y, theta)
+// 	////////////////////////////////////////////////////////////////////////////////
+// 	// roll = asinf(control_sp.t_y / sqrt(
+// 	// 	thrust_norm * thrust_norm - control_sp.t_x * control_sp.t_x));
+// 	// pitch = -asinf(control_sp.t_x / thrust_norm);
+// 	////////////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////
-	// Following calculations are for R(y, theta) * R(x, phi)
-	////////////////////////////////////////////////////////////////////////////////
-	roll = asinf(control_sp.t_y / thrust_norm);
-	pitch = -asinf(control_sp.t_x / sqrt(
-			thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
-	////////////////////////////////////////////////////////////////////////////////
+// 	////////////////////////////////////////////////////////////////////////////////
+// 	// Following calculations are for R(y, theta) * R(x, phi)
+// 	////////////////////////////////////////////////////////////////////////////////
+// 	roll = asinf(control_sp.t_y / thrust_norm);
+// 	pitch = -asinf(control_sp.t_x / sqrt(
+// 			thrust_norm * thrust_norm - control_sp.t_y * control_sp.t_y));
+// 	////////////////////////////////////////////////////////////////////////////////
 
-	// Constrain roll and pitch to servo limits
-	roll = math::constrain(roll, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
-	pitch  = math::constrain(pitch, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
+// 	// Constrain roll and pitch to servo limits
+// 	roll = math::constrain(roll, _geometry.servos[0].min_limit, _geometry.servos[0].max_limit);
+// 	pitch  = math::constrain(pitch, _geometry.servos[1].min_limit, _geometry.servos[1].max_limit);
 
-	gimbal_roll_cmd = roll;
-	gimbal_pitch_cmd = pitch;
-}
+// 	gimbal_roll_cmd = roll;
+// 	gimbal_pitch_cmd = pitch;
+// }
 
 void ActuatorEffectivenessTVC::calculateMotorSpeeds(const ControlSetpoint &control_sp,
 						    float &motor1_pwm, float &motor2_pwm)
@@ -274,16 +262,6 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
                 ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
                 const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
-
-	// Follows NED frame convention
-
-	// _tvc_control_sp.tau_x = control_sp(0);
-	// _tvc_control_sp.tau_y = control_sp(1);
-	// _tvc_control_sp.tau_z = control_sp(2);
-	// _tvc_control_sp.t_x = control_sp(3);
-	// _tvc_control_sp.t_y = - _tvc_control_sp.tau_z / _geometry.gimbal_com_distance; // Invert Y thrust for correct direction
-	// _tvc_control_sp.t_z = _tvc_control_sp.tau_y / _geometry.gimbal_com_distance; // Invert Z thrust for correct direction
-
 	if (matrix_initialized)
 	{
 		gimbal_roll_target_angle = control_sp(0); 	//phi
@@ -292,14 +270,6 @@ void ActuatorEffectivenessTVC::updateSetpoint(const matrix::Vector<float, NUM_AX
 		_tvc_control_sp.t_x = control_sp(3);		// 0
 		_tvc_control_sp.t_y = control_sp(4);		// 0
 		_tvc_control_sp.t_z = control_sp(5);		// t_z
-
-		// // Test case
-		// _tvc_control_sp.tau_x = 0.0f;
-		// _tvc_control_sp.tau_y = 0.0f;
-		// _tvc_control_sp.tau_z = 0.0f;
-		// _tvc_control_sp.t_x = 0.6f * 9.81f * 1.1f;
-		// _tvc_control_sp.t_y = 0.0f;
-		// _tvc_control_sp.t_z = 0.0f;
 
 		// calculateGimbalAngles(_tvc_control_sp, gimbal_roll_target_angle, gimbal_pitch_target_angle);
 		actuator_sp(_servo_roll_idx)   = gimbal_roll_target_angle;
