@@ -47,7 +47,7 @@ try:
 except:
     tag_or_branch = None
 
-if validate:
+if False:
     if verbose:
         print("testing git tag: "+git_tag)
     # remove optional '-dirty' at the end

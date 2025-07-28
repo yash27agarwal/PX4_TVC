@@ -119,22 +119,13 @@ execute_process(
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
-# git describe to X.Y.Z version
-string(REPLACE "." ";" VERSION_LIST ${PX4_GIT_TAG})
+# Disable git tag checking - use hardcoded version for custom builds
+set(PX4_VERSION_MAJOR 1)
+set(PX4_VERSION_MINOR 15)
+set(PX4_VERSION_PATCH 0)
+set(PX4_GIT_HASH "custom")
 
-# major version
-list(GET VERSION_LIST 0 PX4_VERSION_MAJOR)
-string(REPLACE "v" "" PX4_VERSION_MAJOR ${PX4_VERSION_MAJOR})
-# minor version
-list(GET VERSION_LIST 1 PX4_VERSION_MINOR)
-# patch version
-list(GET VERSION_LIST 2 PX4_VERSION_PATCH)
-string(REPLACE "-" ";" PX4_VERSION_PATCH ${PX4_VERSION_PATCH})
-list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
-
-# # Capture only the hash part after 'g'
-string(REGEX MATCH "g([a-f0-9]+)$" GIT_HASH "${PX4_GIT_TAG}")
-set(PX4_GIT_HASH ${CMAKE_MATCH_1})
+message(STATUS "Using hardcoded version: ${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH}")
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
